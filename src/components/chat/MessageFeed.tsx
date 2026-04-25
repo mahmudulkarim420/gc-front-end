@@ -70,7 +70,7 @@ export function MessageFeed({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-[24px] py-8 space-y-8 flex flex-col scroll-smooth">
+    <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 flex flex-col scroll-smooth">
       {/* ... date ... */}
       <div className="flex justify-center">
         <span className="font-label-caps text-label-caps text-slate-500 bg-surface-container-low px-4 py-1.5 rounded-full uppercase">

@@ -92,7 +92,7 @@ export default function ChatPage() {
         onSelectGroup={setActiveGroupId}
       />
       
-      <main className={`flex-1 flex flex-col h-full bg-background relative transition-all duration-300 ${sidebarOpen ? 'ml-0' : 'md:ml-64'}`}>
+      <main className="flex-1 flex flex-col h-full bg-background relative transition-all duration-300 md:ml-64">
         <ChatHeader 
           groupName={activeGroup?.name || 'Workspace'} 
           groupImage={activeGroup?.imageUrl}

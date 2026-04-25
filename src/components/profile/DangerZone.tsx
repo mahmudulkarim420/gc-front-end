@@ -37,16 +37,16 @@ export function DangerZone() {
   };
 
   return (
-    <div className="mt-12 bg-red-500/5 border border-red-500/20 rounded-xl p-8 font-manrope">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+    <div className="mt-8 md:mt-12 bg-rose-500/5 border border-rose-500/20 rounded-xl p-5 md:p-8 font-manrope">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6 text-center md:text-left">
         <div>
-          <h3 className="text-xl font-bold text-red-500 mb-1">Delete Account</h3>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Permanently remove your data and access from CollabChat.</p>
+          <h3 className="text-lg md:text-xl font-bold text-rose-500 mb-1">Delete Account</h3>
+          <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-widest font-bold">Permanently remove your data and access from CollabChat.</p>
         </div>
         <button 
           onClick={handleDelete}
           disabled={loading}
-          className="px-8 py-3 bg-transparent border border-red-500/50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all font-bold disabled:opacity-50"
+          className="w-full md:w-auto px-8 py-3 bg-transparent border border-rose-500/30 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition-all font-bold disabled:opacity-50 text-xs md:text-sm uppercase tracking-widest"
         >
           {loading ? 'Deleting...' : 'Delete Forever'}
         </button>
