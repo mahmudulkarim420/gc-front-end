@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/config/constants';
 
 export function DangerZone() {
   const [loading, setLoading] = useState(false);
@@ -14,7 +15,7 @@ export function DangerZone() {
     setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const response = await fetch('http://localhost:5000/api/users/account', {
+      const response = await fetch(`${API_BASE_URL}/users/account`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/config/constants';
 
 export function ProfileHero() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -21,7 +22,7 @@ export function ProfileHero() {
   const handleUpdate = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/users/profile', {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.id, username, avatarUrl }),
@@ -52,7 +53,7 @@ export function ProfileHero() {
 
     try {
       // 1. Upload to Cloudinary
-      const uploadRes = await fetch('http://localhost:5000/api/upload', {
+      const uploadRes = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -60,7 +61,7 @@ export function ProfileHero() {
 
       if (uploadRes.ok) {
         // 2. Update User Profile in DB
-        const profileRes = await fetch('http://localhost:5000/api/users/profile', {
+        const profileRes = await fetch(`${API_BASE_URL}/users/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

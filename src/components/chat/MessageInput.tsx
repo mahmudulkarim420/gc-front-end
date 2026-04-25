@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, KeyboardEvent, useRef } from 'react';
+import { API_BASE_URL } from '@/config/constants';
 
 interface MessageInputProps {
   onSend: (content: string, type?: 'text' | 'image' | 'video') => void;
@@ -54,7 +55,7 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
     formData.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/upload', {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
