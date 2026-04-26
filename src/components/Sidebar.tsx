@@ -85,6 +85,11 @@ export function Sidebar({
                   <button
                     key={group._id}
                     onClick={() => {
+                      if (!group._id) {
+                        console.error("[Sidebar] Group has no _id:", group);
+                        return;
+                      }
+                      console.log("[Sidebar] Selecting group:", group._id, group.name);
                       onSelectGroup(group._id);
                       onClose();
                     }}
