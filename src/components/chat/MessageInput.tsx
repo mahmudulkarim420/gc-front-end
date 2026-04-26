@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, KeyboardEvent, useRef } from "react";
+import { useState, KeyboardEvent, useRef, useCallback, useEffect } from "react";
 import { API_BASE_URL } from "@/config/constants";
 
 interface MessageInputProps {
@@ -15,8 +15,22 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const shouldRefocusRef = useRef(false);
 
-  const handleSend = () => {
+  // Refocus textarea after message is sent to keep keyboard open on mobile
+  useEffect(() => {
+    if (shouldRefocusRef.current && textareaRef.current) {
+      // Use requestAnimationFrame to ensure focus happens after DOM updates
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        // Scroll to textarea on mobile to ensure it's visible
+        textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      shouldRefocusRef.current = false;
+    }
+  });
+
+  const handleSend = useCallback(() => {
     console.log(
       "[MessageInput] handleSend called, message:",
       message.trim() ? "has content" : "empty",
@@ -28,63 +42,80 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
       setMessage("");
       if (typingTimeout) clearTimeout(typingTimeout);
       onStopTyping();
-      // Refocus textarea to keep keyboard open on mobile
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 0);
+      // Set flag to refocus after state updates
+      shouldRefocusRef.current = true;
     }
-  };
+  }, [message, typingTimeout, onSend, onStopTyping]);
 
-  const handleChange = (content: string) => {
-    setMessage(content);
+  const handleChange = useCallback(
+    (content: string) => {
+      setMessage(content);
 
-    // Typing logic
-    if (typingTimeout) clearTimeout(typingTimeout);
-    else onTyping();
+      // Typing logic
+      if (typingTimeout) clearTimeout(typingTimeout);
+      else onTyping();
 
-    const timeout = setTimeout(() => {
-      onStopTyping();
-      setTypingTimeout(null);
-    }, 2000);
+      const timeout = setTimeout(() => {
+        onStopTyping();
+        setTypingTimeout(null);
+      }, 2000);
 
-    setTypingTimeout(timeout);
-  };
+      setTypingTimeout(timeout);
+    },
+    [typingTimeout, onTyping, onStopTyping],
+  );
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyPress = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
+
+  const handleSendClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       handleSend();
-    }
-  };
+    },
+    [handleSend],
+  );
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        const response = await fetch(`${API_BASE_URL}/upload`, {
+          method: "POST",
+          body: formData,
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        onSend(data.url, data.resource_type);
-      } else {
-        alert("Upload failed");
+        if (response.ok) {
+          const data = await response.json();
+          onSend(data.url, data.resource_type);
+          shouldRefocusRef.current = true;
+        } else {
+          alert("Upload failed");
+        }
+      } catch (err) {
+        console.error("Upload error:", err);
+        alert("Error uploading file");
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        shouldRefocusRef.current = true;
       }
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("Error uploading file");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+    },
+    [onSend],
+  );
 
   return (
     <footer className="p-3 md:p-6 pt-2 bg-background/50 backdrop-blur-md relative">
@@ -134,7 +165,7 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
             <span className="material-symbols-outlined text-xl md:text-2xl">attach_file</span>
           </button>
           <button
-            onClick={handleSend}
+            onClick={handleSendClick}
             disabled={isUploading}
             className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl transition-all shadow-lg shadow-primary/20 ${
               isUploading
