@@ -101,7 +101,10 @@ export default function ChatPage() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         activeGroupId={activeGroupId}
-        onSelectGroup={setActiveGroupId}
+        onSelectGroup={(id) => {
+          console.log("[ChatPage] onSelectGroup called with id:", id);
+          setActiveGroupId(id);
+        }}
       />
 
       <main className="flex-1 flex flex-col h-full bg-background relative transition-all duration-300 md:ml-64">

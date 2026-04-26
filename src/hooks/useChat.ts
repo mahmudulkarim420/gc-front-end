@@ -27,15 +27,28 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
     senderIdRef.current = senderId;
   }, [senderId]);
 
-  const activeGroupIdRef = useRef(activeGroupId);
-  useEffect(() => {
+  const activeGroupIdRef = useRef<string | null>(activeGroupId);
+  // Ensure ref is always in sync with prop
+  if (activeGroupIdRef.current !== activeGroupId) {
     console.log(
-      "[useChat] activeGroupIdRef updating from",
+      "[useChat] activeGroupIdRef syncing from",
       activeGroupIdRef.current,
       "to",
       activeGroupId,
     );
     activeGroupIdRef.current = activeGroupId;
+  }
+  // Also use effect for async safety
+  useEffect(() => {
+    if (activeGroupIdRef.current !== activeGroupId) {
+      console.log(
+        "[useChat] activeGroupIdRef effect updating from",
+        activeGroupIdRef.current,
+        "to",
+        activeGroupId,
+      );
+      activeGroupIdRef.current = activeGroupId;
+    }
   }, [activeGroupId]);
 
   // 1. Fetch initial data (Groups & Members)
