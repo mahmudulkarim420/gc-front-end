@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from '@/config/constants';
+import { SOCKET_URL, API_BASE_URL } from '@/config/constants';
 
 export const useChat = (senderId: string, activeGroupId: string | null) => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -19,8 +19,8 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
     const fetchMetadata = async () => {
       try {
         const [groupRes, userRes] = await Promise.all([
-          fetch(`${SOCKET_URL}/api/groups`),
-          fetch(`${SOCKET_URL}/api/users`)
+          fetch(`${API_BASE_URL}/groups`),
+          fetch(`${API_BASE_URL}/users`)
         ]);
         const grps = await groupRes.json();
         const mbrs = await userRes.json();
@@ -39,7 +39,7 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
 
     const fetchMessages = async () => {
       try {
-        const res = await fetch(`${SOCKET_URL}/api/messages?groupId=${activeGroupId}`);
+        const res = await fetch(`${API_BASE_URL}/messages?groupId=${activeGroupId}`);
         const data = await res.json();
         setMessages(data);
         
