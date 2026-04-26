@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import { SOCKET_URL, API_BASE_URL } from "@/config/constants";
 
@@ -22,27 +22,20 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
   // Keep refs to the latest values so callbacks always have fresh data
-  const senderIdRef = useRef(senderId);
-  useEffect(() => {
+  const senderIdRef = useRef<string>("");
+  useLayoutEffect(() => {
     senderIdRef.current = senderId;
   }, [senderId]);
-
-  const activeGroupIdRef = useRef<string | null>(activeGroupId);
-  // Ensure ref is always in sync with prop
-  if (activeGroupIdRef.current !== activeGroupId) {
-    console.log(
-      "[useChat] activeGroupIdRef syncing from",
-      activeGroupIdRef.current,
-      "to",
-      activeGroupId,
-    );
-    activeGroupIdRef.current = activeGroupId;
+  if (senderIdRef.current !== senderId) {
+    senderIdRef.current = senderId;
   }
-  // Also use effect for async safety
-  useEffect(() => {
+
+  const activeGroupIdRef = useRef<string | null>(null);
+  // Use layout effect for synchronous updates before paint
+  useLayoutEffect(() => {
     if (activeGroupIdRef.current !== activeGroupId) {
       console.log(
-        "[useChat] activeGroupIdRef effect updating from",
+        "[useChat] activeGroupIdRef updating from",
         activeGroupIdRef.current,
         "to",
         activeGroupId,
@@ -50,6 +43,10 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
       activeGroupIdRef.current = activeGroupId;
     }
   }, [activeGroupId]);
+  // Also do immediate sync check in render
+  if (activeGroupIdRef.current !== activeGroupId) {
+    activeGroupIdRef.current = activeGroupId;
+  }
 
   // 1. Fetch initial data (Groups & Members)
   useEffect(() => {
