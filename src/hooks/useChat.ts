@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL, API_BASE_URL } from '@/config/constants';
 
@@ -14,59 +14,58 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
   const [members, setMembers] = useState<any[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
+  // Keep a ref to the latest senderId so the connect handler always has fresh data
+  const senderIdRef = useRef(senderId);
+  useEffect(() => { senderIdRef.current = senderId; }, [senderId]);
+
   // 1. Fetch initial data (Groups & Members)
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
+        console.log('[useChat] Fetching groups and members from:', API_BASE_URL);
         const [groupRes, userRes] = await Promise.all([
           fetch(`${API_BASE_URL}/groups`),
           fetch(`${API_BASE_URL}/users`)
         ]);
         const grps = await groupRes.json();
         const mbrs = await userRes.json();
+        console.log('[useChat] Groups fetched:', grps.length, '| Members fetched:', mbrs.length);
         setGroups(grps);
         setMembers(mbrs);
       } catch (error) {
-        console.error('Error fetching metadata:', error);
+        console.error('[useChat] Error fetching metadata:', error);
       }
     };
     fetchMetadata();
   }, []);
 
-  // 2. Handle Group Switching (Fetch Messages & Join Room)
+  // 2. Initialize Socket ONCE — no activeGroupId or senderId in deps
   useEffect(() => {
-    if (!activeGroupId) return;
-
-    const fetchMessages = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/messages?groupId=${activeGroupId}`);
-        const data = await res.json();
-        setMessages(data);
-        
-        const currentGroup = groups.find(g => g._id === activeGroupId);
-        if (currentGroup) setGroupName(currentGroup.name);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
-    };
-    fetchMessages();
-
-    if (socket) {
-      socket.emit('join_group', activeGroupId);
-    }
-  }, [activeGroupId, groups, socket]);
-
-  // 3. Initialize Socket
-  useEffect(() => {
-    const socketInstance = io(SOCKET_URL);
+    console.log('[useChat] Initializing socket connection to:', SOCKET_URL);
+    const socketInstance = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    });
 
     socketInstance.on('connect', () => {
+      console.log('[useChat] Socket connected. ID:', socketInstance.id, '| Sender:', senderIdRef.current);
       setIsConnected(true);
-      if (senderId) socketInstance.emit('register_user', senderId);
-      if (activeGroupId) socketInstance.emit('join_group', activeGroupId);
+      if (senderIdRef.current) {
+        socketInstance.emit('register_user', senderIdRef.current);
+      }
+    });
+
+    socketInstance.on('connect_error', (err) => {
+      console.error('[useChat] Socket connection error:', err.message);
+    });
+
+    socketInstance.on('disconnect', (reason) => {
+      console.warn('[useChat] Socket disconnected:', reason);
+      setIsConnected(false);
     });
 
     socketInstance.on('online_users', (userIds) => {
+      console.log('[useChat] Online users updated:', userIds);
       setOnlineUserIds(userIds);
     });
 
@@ -76,7 +75,6 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
 
     socketInstance.on('group_updated', (updatedGroup) => {
       setGroups((prev) => prev.map(g => g._id === updatedGroup._id ? updatedGroup : g));
-      if (updatedGroup._id === activeGroupId) setGroupName(updatedGroup.name);
     });
 
     socketInstance.on('group_deleted', (deletedGroupId) => {
@@ -84,6 +82,7 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
     });
 
     socketInstance.on('receive_message', (message) => {
+      console.log('[useChat] Received message:', message._id, '| Content:', message.content);
       setMessages((prev) => {
         const exists = prev.some(m => m._id === message._id);
         if (exists) return prev;
@@ -120,8 +119,52 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
     });
 
     setSocket(socketInstance);
-    return () => { socketInstance.disconnect(); };
-  }, [senderId, activeGroupId]);
+    return () => {
+      console.log('[useChat] Cleaning up socket connection.');
+      socketInstance.disconnect();
+    };
+  }, []); // Empty deps: socket is created ONCE
+
+  // 3. Re-register user when senderId becomes available (e.g., after login loads)
+  useEffect(() => {
+    if (socket && isConnected && senderId) {
+      console.log('[useChat] Registering user with socket. SenderID:', senderId);
+      socket.emit('register_user', senderId);
+    }
+  }, [socket, isConnected, senderId]);
+
+  // 4. Join group room and fetch messages whenever activeGroupId changes
+  useEffect(() => {
+    if (!activeGroupId) return;
+
+    console.log('[useChat] Switching to group:', activeGroupId);
+
+    // Join socket room
+    if (socket && isConnected) {
+      socket.emit('join_group', activeGroupId);
+    }
+
+    // Fetch messages from DB
+    const fetchMessages = async () => {
+      try {
+        console.log('[useChat] Fetching messages for group:', activeGroupId);
+        const res = await fetch(`${API_BASE_URL}/messages?groupId=${activeGroupId}`);
+        const data = await res.json();
+        console.log('[useChat] Messages fetched:', Array.isArray(data) ? data.length : 'error', data);
+        setMessages(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('[useChat] Error fetching messages:', error);
+      }
+    };
+    fetchMessages();
+  }, [activeGroupId, socket, isConnected]);
+
+  // 5. Update group name when groups or activeGroupId changes
+  useEffect(() => {
+    if (!activeGroupId || groups.length === 0) return;
+    const currentGroup = groups.find(g => g._id === activeGroupId);
+    if (currentGroup) setGroupName(currentGroup.name);
+  }, [activeGroupId, groups]);
 
   const createGroup = useCallback((name: string, imageUrl?: string) => {
     socket?.emit('create_group', { name, imageUrl });
@@ -151,8 +194,11 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
   }, [socket]);
 
   const sendMessage = useCallback((content: string, type: 'text' | 'image' | 'video' = 'text') => {
-    if (socket && isConnected && activeGroupId) {
+    if (socket && isConnected && activeGroupId && senderId) {
+      console.log('[useChat] Sending message to group:', activeGroupId, '| Content:', content);
       socket.emit('send_message', { senderId, groupId: activeGroupId, content, type });
+    } else {
+      console.warn('[useChat] Cannot send message. socket:', !!socket, 'connected:', isConnected, 'groupId:', activeGroupId, 'senderId:', senderId);
     }
   }, [socket, isConnected, senderId, activeGroupId]);
 
