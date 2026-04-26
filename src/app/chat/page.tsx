@@ -71,12 +71,14 @@ export default function ChatPage() {
       groups.length,
       "groups, activeGroupId:",
       activeGroupId,
+      "groups data:",
+      groups,
     );
     if (groups.length > 0 && !activeGroupId) {
       console.log("[ChatPage] Setting initial group to:", groups[0]._id);
       setActiveGroupId(groups[0]._id);
     }
-  }, [groups, activeGroupId]);
+  }, [groups]); // Removed activeGroupId from deps to prevent race condition
 
   // Get active group data
   const activeGroup = groups.find((g) => g._id === activeGroupId) || groups[0];
