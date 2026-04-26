@@ -29,6 +29,12 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
 
   const activeGroupIdRef = useRef(activeGroupId);
   useEffect(() => {
+    console.log(
+      "[useChat] activeGroupIdRef updating from",
+      activeGroupIdRef.current,
+      "to",
+      activeGroupId,
+    );
     activeGroupIdRef.current = activeGroupId;
   }, [activeGroupId]);
 
@@ -234,34 +240,6 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
     [socket],
   );
 
-  const sendMessage = useCallback(
-    (content: string, type: "text" | "image" | "video" = "text") => {
-      const currentGroupId = activeGroupIdRef.current;
-      const currentSenderId = senderIdRef.current;
-      if (socket && isConnected && currentGroupId && currentSenderId) {
-        console.log("[useChat] Sending message to group:", currentGroupId, "| Content:", content);
-        socket.emit("send_message", {
-          senderId: currentSenderId,
-          groupId: currentGroupId,
-          content,
-          type,
-        });
-      } else {
-        console.warn(
-          "[useChat] Cannot send message. socket:",
-          !!socket,
-          "connected:",
-          isConnected,
-          "groupId:",
-          currentGroupId,
-          "senderId:",
-          currentSenderId,
-        );
-      }
-    },
-    [socket, isConnected],
-  );
-
   const sendTyping = useCallback(
     (username: string) => {
       const currentGroupId = activeGroupIdRef.current;
@@ -276,6 +254,40 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
       if (currentGroupId) socket?.emit("stop_typing", username, currentGroupId);
     },
     [socket],
+  );
+
+  const sendMessage = useCallback(
+    (content: string, type: "text" | "image" | "video" = "text") => {
+      const currentGroupId = activeGroupIdRef.current;
+      const currentSenderId = senderIdRef.current;
+      console.log(
+        "[useChat] sendMessage called. ref currentGroupId:",
+        currentGroupId,
+        "ref currentSenderId:",
+        currentSenderId?.slice(0, 8),
+      );
+      if (socket && isConnected && currentGroupId && currentSenderId) {
+        console.log("[useChat] Sending message to group:", currentGroupId, "| Content:", content);
+        socket.emit("send_message", {
+          senderId: currentSenderId,
+          groupId: currentGroupId,
+          content,
+          type,
+        });
+      } else {
+        console.warn(
+          "[useChat] Cannot send message. socket:",
+          !!socket,
+          "connected:",
+          isConnected,
+          "groupId (from ref):",
+          currentGroupId,
+          "senderId (from ref):",
+          currentSenderId,
+        );
+      }
+    },
+    [socket, isConnected],
   );
 
   return {
