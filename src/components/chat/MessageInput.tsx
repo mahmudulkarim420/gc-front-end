@@ -14,6 +14,7 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
     console.log(
@@ -27,6 +28,10 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
       setMessage("");
       if (typingTimeout) clearTimeout(typingTimeout);
       onStopTyping();
+      // Refocus textarea to keep keyboard open on mobile
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -108,6 +113,7 @@ export function MessageInput({ onSend, onTyping, onStopTyping }: MessageInputPro
         </div>
         <div className="flex-1 flex flex-col">
           <textarea
+            ref={textareaRef}
             className="w-full bg-transparent border-none focus:ring-0 text-on-surface py-2 md:py-3 px-1 md:px-2 resize-none font-body-lg placeholder:text-slate-600 outline-none text-sm md:text-base min-h-[40px]"
             placeholder={isUploading ? "Uploading..." : "Message"}
             rows={1}
