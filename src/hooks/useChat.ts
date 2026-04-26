@@ -276,26 +276,34 @@ export const useChat = (senderId: string, activeGroupId: string | null) => {
         "ref currentSenderId:",
         currentSenderId?.slice(0, 8),
       );
-      if (socket && isConnected && currentGroupId && currentSenderId) {
-        console.log("[useChat] Sending message to group:", currentGroupId, "| Content:", content);
-        socket.emit("send_message", {
-          senderId: currentSenderId,
-          groupId: currentGroupId,
-          content,
-          type,
-        });
-      } else {
-        console.warn(
-          "[useChat] Cannot send message. socket:",
-          !!socket,
-          "connected:",
-          isConnected,
-          "groupId (from ref):",
-          currentGroupId,
-          "senderId (from ref):",
-          currentSenderId,
-        );
+
+      if (!currentGroupId) {
+        console.error("[useChat] Cannot send message: No active group selected");
+        return;
       }
+
+      if (!currentSenderId) {
+        console.error("[useChat] Cannot send message: Sender ID not available");
+        return;
+      }
+
+      if (!socket) {
+        console.error("[useChat] Cannot send message: Socket not initialized");
+        return;
+      }
+
+      if (!isConnected) {
+        console.error("[useChat] Cannot send message: Socket not connected");
+        return;
+      }
+
+      console.log("[useChat] Sending message to group:", currentGroupId, "| Content:", content);
+      socket.emit("send_message", {
+        senderId: currentSenderId,
+        groupId: currentGroupId,
+        content,
+        type,
+      });
     },
     [socket, isConnected],
   );

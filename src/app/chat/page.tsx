@@ -140,11 +140,15 @@ export default function ChatPage() {
           onDeleteMessage={deleteMessage}
           groupName={groupName}
         />
-        <MessageInput
-          onSend={sendMessage}
-          onTyping={() => sendTyping(currentUser?.username || "Anonymous")}
-          onStopTyping={() => sendStopTyping(currentUser?.username || "Anonymous")}
-        />
+        {activeGroupId ? (
+          <MessageInput
+            onSend={sendMessage}
+            onTyping={() => sendTyping(currentUser?.username || "Anonymous")}
+            onStopTyping={() => sendStopTyping(currentUser?.username || "Anonymous")}
+          />
+        ) : (
+          <div className="p-4 text-center text-slate-400">Select a group to start messaging</div>
+        )}
       </main>
     </div>
   );
